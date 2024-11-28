@@ -1,0 +1,37 @@
+#ARL, SDRL of proposed control chart
+rm(list=ls(all=TRUE))
+library(e1071)
+aa=7;cc=2;rl=c();AEWMA=c();Mx=c();sigyy=1;D=c();h=1.0700
+n=5 # One can Take different Sample Size like n = 3,4,5,6,7
+A=(-0.8969);B=2.3647;C=0.5979
+a=A-(2*B*log(sigyy));b=B;c=C*sigyy
+
+train=read.csv(choose.files())
+xt=train$Xt
+lemda=train$Lemda
+data=data.frame(xt,lemda)
+#Training of SVR Model at different Parameters
+#put kernel="linear" or kernel = "polynomial"
+svr_model=svm(lemda ~ xt, data = data, kernel = "radial", cost = 0.1, epsilon = 0.1 ,gamma=1) # gamma = 1.5, 2 or 2.5
+
+for(j in 1:10000)
+{
+  for(i in 1:10000)
+  {
+    phase2_data=rnorm(n,0,1)  # Generate Phase 2 data
+    Mx[i]=var(phase2_data)
+    D[i]=a+b*log((Mx[i])^2+c)
+    score=predict(svr_model, data.frame(xt = D[i]), decision.values = TRUE)
+    theta=abs(score)
+    if (i==1)
+    {AEWMA[i]=theta*D[i]+(1-theta)*0}
+    else
+    {AEWMA[i]=theta*D[i]+(1-theta)*mean(AEWMA[i-1])}   
+    
+   if(abs(AEWMA[i]) > h)
+    {rl[j]<-i
+      break}
+  }}
+round(mean(rl),2)
+round(sd(rl),2)
+
